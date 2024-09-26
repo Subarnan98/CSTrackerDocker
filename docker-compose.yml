@@ -1,0 +1,78 @@
+services:
+  backend:
+    build:
+      context: ./backend  # Chemin vers le dossier backend
+      dockerfile: Dockerfile
+    container_name: symfony-backend
+    volumes:
+      - ./backend:/var/www/html
+    ports:
+      - "8000:80"
+    depends_on:
+      - db
+    environment:
+      DATABASE_URL: mysql://root:password@db:3306/cashsofttracker_db
+    networks:
+      - symfony_network
+
+  frontend:
+    build:
+      context: ./frontend  # Chemin vers le dossier frontend
+      dockerfile: Dockerfile
+    container_name: react-frontend
+    working_dir: /app
+    volumes:
+      - ./frontend:/app
+    ports:
+      - "3000:3000"
+    networks:
+      - symfony_network
+    environment:
+      NODE_ENV: development
+      BROWSER: none  # Ajout pour désactiver l'ouverture automatique du navigateur
+
+
+  db:
+    image: mysql:8.0
+    container_name: symfony-db
+    environment:
+      MYSQL_ROOT_PASSWORD: password
+      MYSQL_DATABASE: cashsofttracker_db
+    ports:
+      - "3306:3306"
+    volumes:
+      - db_data:/var/lib/mysql
+    networks:
+      - symfony_network
+
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    container_name: symfony-phpmyadmin
+    environment:
+      PMA_HOST: db  # symfony-db est le nom que phpMyAdmin doit résoudre
+      MYSQL_ROOT_PASSWORD: password
+    ports:
+      - "8080:80"
+    depends_on:
+      - db
+    networks:
+      - symfony_network
+
+  mailer:
+    image: axllent/mailpit
+    container_name: symfony-mailer
+    ports:
+      - "1025:1025"
+      - "8025:8025"
+    environment:
+      MP_SMTP_AUTH_ACCEPT_ANY: 1
+      MP_SMTP_AUTH_ALLOW_INSECURE: 1
+    networks:
+      - symfony_network
+
+networks:
+  symfony_network:
+    driver: bridge
+
+volumes:
+  db_data:
